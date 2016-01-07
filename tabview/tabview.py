@@ -108,6 +108,9 @@ class Viewer:
         self.column_gap = kwargs.get('column_gap')
         self._init_column_widths(kwargs.get('column_width'),
                                  kwargs.get('column_widths'))
+        key_update = kwargs.get('key_update')
+
+
         try:
             kwargs.get('trunc_char').encode(sys.stdout.encoding or 'utf-8')
             self.trunc_char = kwargs.get('trunc_char')
@@ -123,6 +126,10 @@ class Viewer:
         self._search_win_open = 0
         self.modifier = str()
         self.define_keys()
+        from functools import partial
+        if key_update:
+            key_update = {k: partial(v, self) for k, v in key_update.items()}
+            self.update_keys_fun(key_update)
         self.resize()
         self.display()
         # Handle goto initial position (either (y,x), [y] or y)
@@ -631,6 +638,9 @@ class Viewer:
                       universal_newlines=True).communicate(input=s)
             except IOError:
                 pass
+
+    def update_keys_fun(self, k):
+        self.keys.update(k)
 
     def define_keys(self):
         self.keys = {'j':   self.down,
@@ -1255,7 +1265,7 @@ def main(stdscr, *args, **kwargs):
 
 def view(data, enc=None, start_pos=(0, 0), column_width=20, column_gap=2,
          trunc_char='…', column_widths=None, search_str=None,
-         double_width=False, delimiter=None, quoting=None, info=None):
+         double_width=False, delimiter=None, quoting=None, info=None, key_update=None):
     """The curses.wrapper passes stdscr as the first argument to main +
     passes to main any other arguments passed to wrapper. Initializes
     and then puts screen back in a normal state after closing or
@@ -1329,7 +1339,8 @@ def view(data, enc=None, start_pos=(0, 0), column_width=20, column_gap=2,
                                column_widths=column_widths,
                                search_str=search_str,
                                double_width=double_width,
-                               info=info)
+                               info=info,
+                               key_update=key_update)
             except (QuitException, KeyboardInterrupt):
                 return 0
             except ReloadException as e:
